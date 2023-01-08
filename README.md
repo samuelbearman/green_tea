@@ -6,3 +6,9 @@ Binary embedding tool, allows for packaging and execution of scripts and other f
 
 - Difference between Command with shell and no shell
 - Original filenames? (busybox)
+
+## Usage
+
+``` shell
+gt run --program=tools/linpeas.sh
+```

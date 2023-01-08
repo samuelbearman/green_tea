@@ -55,6 +55,7 @@ func main() {
 
 	listCommand := flag.NewFlagSet("list", flag.ContinueOnError)
 	runCommand := flag.NewFlagSet("run", flag.ContinueOnError)
+	cleanCommand := flag.NewFlagSet("clean", flag.ContinueOnError)
 
 	programToRunPtr := runCommand.String("program", "", "Program to run (Required)")
 	argsToRunPtr := runCommand.String("args", "", "Args to run with (Optional)")
@@ -69,9 +70,15 @@ func main() {
 		listCommand.Parse([]string{})
 	case "run":
 		runCommand.Parse(os.Args[2:])
+	case "clean":
+		cleanCommand.Parse(os.Args[2:])
 	default:
 		flag.PrintDefaults()
 		os.Exit(1)
+	}
+
+	if cleanCommand.Parsed() {
+		cleanUp()
 	}
 
 	if listCommand.Parsed() {
@@ -86,6 +93,21 @@ func main() {
 			os := getOperatingSystem()
 			commandInfo := CommandInfo{originalCommand: *programToRunPtr, args: *argsToRunPtr, operatingSystem: os, tempFile: nil}
 			runTool(&commandInfo)
+		}
+	}
+}
+
+func cleanUp() {
+	currentOs := getOperatingSystem()
+	if currentOs == "linux" {
+		files, err := filepath.Glob("/tmp/gt-*")
+		if err != nil {
+			panic(err)
+		}
+		for _, f := range files {
+			if err := os.Remove(f); err != nil {
+				panic(err)
+			}
 		}
 	}
 }
@@ -111,13 +133,13 @@ func runTool(command *CommandInfo) {
 	switch filepath.Ext(command.originalCommand) {
 	case ".sh":
 		if command.operatingSystem != Linux {
-			log.Fatal("Cannot be run on a Linux machine")
+			log.Fatal("Can only be run on a Linux machine")
 		} else {
 			pattern += ".sh"
 		}
 	case ".exe":
 		if command.operatingSystem != Windows {
-			log.Fatal("Cannot be run on a Windows machine")
+			log.Fatal("Can only be run on a Windows machine")
 		} else {
 			pattern += ".exe"
 		}
@@ -135,11 +157,6 @@ func runTool(command *CommandInfo) {
 
 	runCommand(command)
 
-	err := os.Remove(command.tempFile.Name())
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
 }
 
 func runCommand(command *CommandInfo) {
@@ -147,6 +164,7 @@ func runCommand(command *CommandInfo) {
 
 	switch command.operatingSystem {
 	case Windows:
+		cmd = exec.Command("cmd", command.tempFile.Name())
 	case Linux:
 		cmd = exec.Command("/bin/sh", command.tempFile.Name())
 	case Macintosh:
@@ -154,8 +172,10 @@ func runCommand(command *CommandInfo) {
 	case Unknown:
 	}
 
-	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+
 	err := cmd.Run()
 	if err != nil {
 		log.Fatal(err)
