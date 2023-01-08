@@ -1,2 +1,8 @@
 # green_tea
-Tool that I made to make life easier on HackTheBox
+
+Binary embedding tool, allows for packaging and execution of scripts and other files in one single binary
+
+## Notes
+
+- Difference between Command with shell and no shell
+- Original filenames? (busybox)
